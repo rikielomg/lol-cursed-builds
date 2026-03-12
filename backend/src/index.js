@@ -30,6 +30,27 @@ app.use('/api/players', playersRouter);
 app.use('/api/challenges', challengesRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 
+// DEBUG - remove later
+app.get('/api/debug/matches/:playerId', async (req, res) => {
+  try {
+    const { getDb, dbGet } = require('./db/database');
+    const { getMatchIds, getMatchDetails } = require('./riot/riotApi');
+    await getDb();
+    const player = dbGet('SELECT * FROM players WHERE id = ?', [req.params.playerId]);
+    if (!player) return res.json({ error: 'player not found' });
+    const matchIds = await getMatchIds(player.puuid, player.region, 10);
+    const details = [];
+    for (const id of (matchIds || []).slice(0, 3)) {
+      const m = await getMatchDetails(id, player.region);
+      const p = m.info.participants.find(x => x.puuid === player.puuid);
+      details.push({ matchId: id, champion: p?.championName, win: p?.win, queueId: m.info.queueId });
+    }
+    res.json({ puuid: player.puuid, region: player.region, matchIds, details });
+  } catch (e) {
+    res.json({ error: e.message, stack: e.stack });
+  }
+});
+
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
