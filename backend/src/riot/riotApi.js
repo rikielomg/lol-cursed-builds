@@ -80,9 +80,6 @@ async function verifyChallenge(puuid, region, challenge) {
 
     const { score, correctCount, total } = calculateScore(playerItems, challengeItemIds, participant.win);
 
-    // At least 1 correct item to count this match
-    if (correctCount === 0) continue;
-
     if (participant.win && correctCount === total) {
       // Perfect: all items + win
       return {
@@ -94,18 +91,18 @@ async function verifyChallenge(puuid, region, challenge) {
       };
     }
 
-    // Partial: some items or win without all items
+    // Found the right champion — report partial progress even with 0 items
     return {
-      verified: false, partialWin: false, partialMatch: true,
+      verified: false, partialWin: false, partialMatch: correctCount > 0,
       scoreEarned: score,
-      message: `Found a match with ${correctCount}/${total} items${participant.win ? ' and a win' : ' but you lost'}. Score would be +${score}. Keep going!`,
+      message: `Found your match as ${challenge.champion}: ${correctCount}/${total} items${participant.win ? ' ✓ WIN' : ' ✗ LOSS'}. Score would be +${score}. Keep going!`,
       matchId,
     };
   }
 
   return {
     verified: false,
-    reason: 'No matching game found in your last 10 ranked matches. Play with the correct champion!',
+    reason: `No recent match found as ${challenge.champion}. Make sure you played as this champion in one of your last 10 games.`,
   };
 }
 
