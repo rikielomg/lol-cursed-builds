@@ -1,0 +1,251 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Raleway:wght@300;400;500;600&display=swap');
+
+:root {
+  --gold-light: #f0e6a0;
+  --gold: #c89b3c;
+  --gold-dark: #785a28;
+  --dark: #010a13;
+  --navy: #0a1428;
+  --panel: #091428;
+  --blue: #0bc4e3;
+  --teal: #0596aa;
+  --red: #c33c3c;
+  --green: #1cae74;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--dark);
+  color: #a0b4c8;
+  font-family: 'Raleway', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Gold divider */
+.divider-gold {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--gold-dark), var(--gold), var(--gold-dark), transparent);
+  margin: 1.5rem 0;
+}
+
+/* Hexagon decorative element */
+.hex-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23785a28' fill-opacity='0.07'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Panel card */
+.lol-panel {
+  background: linear-gradient(135deg, #0a1428 0%, #091020 100%);
+  border: 1px solid var(--gold-dark);
+  position: relative;
+}
+
+.lol-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, var(--gold), transparent);
+}
+
+/* Buttons */
+.btn-gold {
+  background: linear-gradient(180deg, #c89b3c 0%, #785a28 100%);
+  color: #010a13;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--gold);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(180deg, #f0e6a0 0%, #c89b3c 100%);
+  box-shadow: 0 0 20px rgba(200, 155, 60, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+.btn-gold:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--gold);
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--gold-dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  border-color: var(--gold);
+  color: var(--gold-light);
+  background: rgba(200, 155, 60, 0.1);
+}
+
+/* Status badges */
+.badge-active {
+  background: rgba(11, 196, 227, 0.15);
+  border: 1px solid var(--blue);
+  color: var(--blue);
+}
+
+.badge-completed {
+  background: rgba(28, 174, 116, 0.15);
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+
+.badge-failed {
+  background: rgba(195, 60, 60, 0.15);
+  border: 1px solid var(--red);
+  color: var(--red);
+}
+
+/* Item slot */
+.item-slot {
+  background: linear-gradient(135deg, #0a1428, #050e1e);
+  border: 1px solid var(--gold-dark);
+  transition: all 0.2s ease;
+}
+
+.item-slot:hover {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(200, 155, 60, 0.2);
+}
+
+/* Heading font */
+h1, h2, h3, .heading {
+  font-family: 'Cinzel', serif;
+  color: var(--gold-light);
+}
+
+/* Glow text */
+.text-glow-gold {
+  text-shadow: 0 0 20px rgba(200, 155, 60, 0.6);
+}
+
+.text-glow-blue {
+  text-shadow: 0 0 20px rgba(11, 196, 227, 0.6);
+}
+
+/* Loading animation */
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 1.5s ease-in-out infinite;
+}
+
+/* Scroll animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+/* Corner decoration */
+.corner-decor::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 30px; height: 30px;
+  border-bottom: 2px solid var(--gold-dark);
+  border-right: 2px solid var(--gold-dark);
+}
+
+.corner-decor::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 30px; height: 30px;
+  border-top: 2px solid var(--gold-dark);
+  border-left: 2px solid var(--gold-dark);
+}
+
+/* Input styling */
+.lol-input {
+  background: rgba(5, 10, 20, 0.8);
+  border: 1px solid var(--gold-dark);
+  color: #c8d4e0;
+  font-family: 'Raleway', sans-serif;
+  transition: border-color 0.2s;
+}
+
+.lol-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(200, 155, 60, 0.2);
+}
+
+.lol-input::placeholder {
+  color: #3a4f6a;
+}
+
+.lol-select {
+  background: rgba(5, 10, 20, 0.8);
+  border: 1px solid var(--gold-dark);
+  color: #c8d4e0;
+  font-family: 'Raleway', sans-serif;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23785a28' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.lol-select:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(200, 155, 60, 0.2);
+}
+
+/* Nav */
+.nav-link {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.1em;
+  color: #5a7a99;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  transition: color 0.2s;
+}
+
+.nav-link:hover, .nav-link.active {
+  color: var(--gold);
+}
+
+/* Rank number */
+.rank-1 { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+.rank-2 { color: #c0c0c0; text-shadow: 0 0 10px rgba(192,192,192,0.5); }
+.rank-3 { color: #cd7f32; text-shadow: 0 0 10px rgba(205,127,50,0.5); }
