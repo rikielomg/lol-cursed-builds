@@ -1,81 +1,109 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const axios = require('axios');
 
-const playersRouter = require('./routes/players');
-const challengesRouter = require('./routes/challenges');
-const leaderboardRouter = require('./routes/leaderboard');
+const RIOT_API_KEY = process.env.RIOT_API_KEY;
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+const ACCOUNT_REGION_MAP = {
+  na1: 'americas', na: 'americas', br1: 'americas', la1: 'americas', la2: 'americas',
+  euw1: 'europe', euw: 'europe', eune1: 'europe', eune: 'europe', tr1: 'europe', ru: 'europe',
+  kr: 'asia', jp1: 'asia', oc1: 'sea',
+};
+const PLATFORM_HOST = {
+  na1: 'na1.api.riotgames.com', na: 'na1.api.riotgames.com',
+  euw1: 'euw1.api.riotgames.com', euw: 'euw1.api.riotgames.com',
+  eune1: 'eun1.api.riotgames.com', eune: 'eun1.api.riotgames.com',
+  kr: 'kr.api.riotgames.com', br1: 'br1.api.riotgames.com',
+  la1: 'la1.api.riotgames.com', la2: 'la2.api.riotgames.com',
+  tr1: 'tr1.api.riotgames.com', jp1: 'jp1.api.riotgames.com', oc1: 'oc1.api.riotgames.com',
+};
 
-// Middleware
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowed = [
-      process.env.FRONTEND_URL,
-      'http://localhost:3000',
-    ].filter(Boolean);
-    // Allow all vercel.app preview domains + no-origin requests (Postman etc)
-    if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS: origin not allowed: ' + origin));
-    }
-  },
-  credentials: true,
-}));
-app.use(express.json());
+function getRegionalHost(region) {
+  const key = region.toLowerCase();
+  return `${ACCOUNT_REGION_MAP[key] || 'europe'}.api.riotgames.com`;
+}
 
-// Debug endpoint - remove in production
-app.get('/api/debug/matches/:playerId', async (req, res) => {
-  try {
-    const { getDb, dbGet } = require('./db/database');
-    await getDb();
-    const player = dbGet('SELECT * FROM players WHERE id = ?', [req.params.playerId]);
-    if (!player) return res.status(404).json({ error: 'Player not found' });
-
-    const { getMatchIds, getMatchDetails } = require('./riot/riotApi');
-    const matchIds = await getMatchIds(player.puuid, player.region, 10);
-
-    const matches = [];
-    for (const matchId of matchIds.slice(0, 3)) {
-      const data = await getMatchDetails(matchId, player.region);
-      const p = data.info.participants.find(p => p.puuid === player.puuid);
-      if (p) matches.push({
-        matchId,
-        champion: p.championName,
-        win: p.win,
-        items: [p.item0, p.item1, p.item2, p.item3, p.item4, p.item5],
-        queueId: data.info.queueId,
-        gameMode: data.info.gameMode,
-      });
-    }
-
-    res.json({ player: { id: player.id, name: player.summoner_name, puuid: player.puuid }, matchIds, matches });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+async function riotGet(url) {
+  if (!RIOT_API_KEY || RIOT_API_KEY.startsWith('fake') || RIOT_API_KEY.startsWith('RGAPI-your')) {
+    throw new Error('Valid RIOT_API_KEY not configured');
   }
-});
+  const response = await axios.get(url, { headers: { 'X-Riot-Token': RIOT_API_KEY } });
+  return response.data;
+}
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+async function getPuuidByRiotId(gameName, tagLine, region) {
+  const host = getRegionalHost(region);
+  return riotGet(`https://${host}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
+}
 
-// Routes
-app.use('/api/players', playersRouter);
-app.use('/api/challenges', challengesRouter);
-app.use('/api/leaderboard', leaderboardRouter);
+async function getMatchIds(puuid, region, count = 10) {
+  const host = getRegionalHost(region);
+  return riotGet(`https://${host}/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`);
+}
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal server error' });
-});
+async function getMatchDetails(matchId, region) {
+  const host = getRegionalHost(region);
+  return riotGet(`https://${host}/lol/match/v5/matches/${matchId}`);
+}
 
-app.listen(PORT, () => {
-  console.log(`🎮 LoL Challenge API running on http://localhost:${PORT}`);
-});
+// ── SCORING: 10 pts per correct item, +40 bonus if win ──────
+function calculateScore(playerItems, challengeItemIds, isWin) {
+  const correctItems = challengeItemIds.filter(id => playerItems.includes(id));
+  const itemScore = correctItems.length * 10;
+  const winBonus = isWin ? 40 : 0;
+  return { score: itemScore + winBonus, correctCount: correctItems.length, total: challengeItemIds.length };
+}
 
-module.exports = app;
+async function verifyChallenge(puuid, region, challenge) {
+  const matchIds = await getMatchIds(puuid, region, 10);
+  if (!matchIds || matchIds.length === 0) {
+    return { verified: false, reason: 'No recent ranked matches found.' };
+  }
+
+  const challengeItems = JSON.parse(challenge.items);
+  const challengeItemIds = challengeItems.map(i => i.id);
+
+  for (const matchId of matchIds) {
+    const matchData = await getMatchDetails(matchId, region);
+    const participants = matchData.info.participants;
+    const participant = participants.find(p => p.puuid === puuid);
+    if (!participant) continue;
+
+    // Check champion match
+    const matchChamp = participant.championName.toLowerCase().replace(/[^a-z]/g, '');
+    const challengeChamp = challenge.champion.toLowerCase().replace(/[^a-z]/g, '');
+    if (matchChamp !== challengeChamp) continue;
+
+    // Get player's items
+    const playerItems = [
+      participant.item0, participant.item1, participant.item2,
+      participant.item3, participant.item4, participant.item5,
+    ].filter(id => id > 0);
+
+    const { score, correctCount, total } = calculateScore(playerItems, challengeItemIds, participant.win);
+
+    if (participant.win && correctCount === total) {
+      // Perfect: all items + win
+      return {
+        verified: true, partialWin: false,
+        scoreEarned: score,
+        message: `🎉 Perfect! All ${total} items matched and you won! +${score} points`,
+        matchId, kills: participant.kills, deaths: participant.deaths,
+        assists: participant.assists, gameDuration: matchData.info.gameDuration,
+      };
+    }
+
+    // Found the right champion — report partial progress even with 0 items
+    return {
+      verified: false, partialWin: false, partialMatch: correctCount > 0,
+      scoreEarned: score,
+      message: `Found your match as ${challenge.champion}: ${correctCount}/${total} items${participant.win ? ' ✓ WIN' : ' ✗ LOSS'}. Score would be +${score}. Keep going!`,
+      matchId,
+    };
+  }
+
+  return {
+    verified: false,
+    reason: `No recent match found as ${challenge.champion}. Make sure you played as this champion in one of your last 10 games.`,
+  };
+}
+
+module.exports = { getPuuidByRiotId, getMatchIds, getMatchDetails, verifyChallenge };
