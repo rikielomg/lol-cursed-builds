@@ -257,3 +257,8 @@ export default function ChallengePage() {
     </Layout>
   );
 }
+
+// Add to end of challenge.js
+export async function getServerSideProps() {
+  return { props: {} };
+}
